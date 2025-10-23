@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MENU_ITEMS, CATEGORIES } from "@/lib/menu-data"
 import { useStore, type OrderItem } from "@/lib/store"
-import { Plus, Minus, LogOut, Check, Bell } from "lucide-react"
+import { Plus, Minus, LogOut, Check, Bell, Loader2 } from "lucide-react"
 import { useRealTimeOrders } from "@/hooks/use-real-time-orders"
 import { useOrderNotifications } from "@/hooks/use-order-notifications"
 import { createOrder, updateOrderStatus } from "@/lib/api-client"
@@ -21,6 +21,7 @@ export function KitchenDashboard({ onLogout }: KitchenDashboardProps) {
   const [tableNumber, setTableNumber] = useState<number | "">("")
   const [orderType, setOrderType] = useState<"dine-in" | "takeaway">("dine-in")
   const [refreshTime, setRefreshTime] = useState(new Date())
+  const [completingOrderId, setCompletingOrderId] = useState<number | null>(null)
   const { orders } = useStore()
 
   const { orders: apiOrders, loading } = useRealTimeOrders()
@@ -82,6 +83,20 @@ export function KitchenDashboard({ onLogout }: KitchenDashboardProps) {
     setCurrentOrder([])
     setTableNumber("")
     setOrderType("dine-in")
+  }
+
+  const handleMarkComplete = async (orderId: number) => {
+    try {
+      setCompletingOrderId(orderId)
+      console.log("[v0] Marking order complete:", orderId)
+      const result = await updateOrderStatus(orderId, "completed")
+      console.log("[v0] Order completed successfully:", result)
+    } catch (error) {
+      console.error("[v0] Error marking order complete:", error)
+      alert("Failed to mark order as complete. Please try again.")
+    } finally {
+      setCompletingOrderId(null)
+    }
   }
 
   const orderTotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -172,12 +187,22 @@ export function KitchenDashboard({ onLogout }: KitchenDashboardProps) {
                           Ordered: {new Date(order.createdAt).toLocaleTimeString()}
                         </p>
                         <Button
-                          onClick={() => updateOrderStatus(order.id, "completed")}
-                          className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white gap-2"
+                          onClick={() => handleMarkComplete(order.id)}
+                          disabled={completingOrderId === order.id}
+                          className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           size="sm"
                         >
-                          <Check className="w-4 h-4" />
-                          Mark Complete
+                          {completingOrderId === order.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Completing...
+                            </>
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              Mark Complete
+                            </>
+                          )}
                         </Button>
                       </CardContent>
                     </Card>
