@@ -1,10 +1,11 @@
 import { getOrderById, updateOrder, getOrders } from "@/lib/orders-store"
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const body = await request.json()
   const { status } = body
 
-  const orderId = Number.parseInt(params.id)
+  const orderId = Number.parseInt(id)
   console.log("[v0] PATCH /api/orders/[id] - Received request for order ID:", orderId, "new status:", status)
   console.log(
     "[v0] PATCH /api/orders/[id] - Current orders in store:",
