@@ -10,6 +10,7 @@ import { useRealTimeOrders } from "@/hooks/use-real-time-orders"
 import { useOrderNotifications } from "@/hooks/use-order-notifications"
 import { createOrder, updateOrderStatus } from "@/lib/api-client"
 import { requestNotificationPermission } from "@/lib/notifications"
+import { playBillGeneratedSound, showBrowserNotification } from "@/lib/notifications"
 
 interface ManagerDashboardProps {
   onLogout: () => void
@@ -125,6 +126,11 @@ export function ManagerDashboard({ onLogout }: ManagerDashboardProps) {
   }
 
   const handlePrintBill = (order: any) => {
+    playBillGeneratedSound()
+    showBrowserNotification("Bill Printed!", {
+      body: `Order #${order.id} - ₹${order.totalAmount}`,
+    })
+
     const printWindow = window.open("", "", "height=600,width=400")
     if (!printWindow) return
 

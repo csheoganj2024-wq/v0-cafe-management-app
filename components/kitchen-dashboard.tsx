@@ -10,6 +10,7 @@ import { useRealTimeOrders } from "@/hooks/use-real-time-orders"
 import { useOrderNotifications } from "@/hooks/use-order-notifications"
 import { createOrder, updateOrderStatus } from "@/lib/api-client"
 import { requestNotificationPermission } from "@/lib/notifications"
+import { playNewOrderSound, showBrowserNotification } from "@/lib/notifications"
 
 interface KitchenDashboardProps {
   onLogout: () => void
@@ -80,6 +81,13 @@ export function KitchenDashboard({ onLogout }: KitchenDashboardProps) {
     }
 
     await createOrder(currentOrder, orderType === "dine-in" ? String(tableNumber) : "takeaway", orderType)
+
+    // Play confirmation sound
+    playNewOrderSound()
+    showBrowserNotification("Order Submitted!", {
+      body: `${orderType === "dine-in" ? `Table ${tableNumber}` : "Takeaway"} order submitted successfully`,
+    })
+
     setCurrentOrder([])
     setTableNumber("")
     setOrderType("dine-in")
