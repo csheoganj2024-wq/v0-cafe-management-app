@@ -12,8 +12,11 @@ export function useRealTimeOrders() {
     const pollOrders = async () => {
       try {
         const data = await fetchOrders()
-        setOrders(data.orders)
-        previousOrdersRef.current = data.orders
+        const ordersChanged = JSON.stringify(data.orders) !== JSON.stringify(previousOrdersRef.current)
+        if (ordersChanged) {
+          setOrders(data.orders)
+          previousOrdersRef.current = data.orders
+        }
         setLoading(false)
       } catch (error) {
         console.error("[v0] Error fetching orders:", error)
@@ -23,8 +26,7 @@ export function useRealTimeOrders() {
     // Initial fetch
     pollOrders()
 
-    // Poll every 1 second for real-time updates
-    const interval = setInterval(pollOrders, 1000)
+    const interval = setInterval(pollOrders, 2000)
 
     return () => clearInterval(interval)
   }, [])
