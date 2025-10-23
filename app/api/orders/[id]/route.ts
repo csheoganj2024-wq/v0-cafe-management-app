@@ -1,23 +1,23 @@
-const orders: any[] = []
+import { getOrderById, updateOrder } from "@/lib/orders-store"
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const body = await request.json()
   const { status } = body
 
-  // In a real app, fetch from database
-  const order = orders.find((o) => o.id === Number.parseInt(params.id))
+  const order = getOrderById(Number.parseInt(params.id))
 
   if (!order) {
     return Response.json({ error: "Order not found" }, { status: 404 })
   }
 
+  const updates: any = { status }
+
   if (status === "completed") {
-    order.status = "completed"
-    order.completedAt = new Date().toISOString()
+    updates.completedAt = new Date().toISOString()
   } else if (status === "billed") {
-    order.status = "billed"
-    order.billedAt = new Date().toISOString()
+    updates.billedAt = new Date().toISOString()
   }
 
-  return Response.json(order)
+  const updatedOrder = updateOrder(Number.parseInt(params.id), updates)
+  return Response.json(updatedOrder)
 }
