@@ -1,4 +1,5 @@
-const orders: any[] = []
+// In-memory storage for orders
+let orders: any[] = []
 let orderIdCounter = 1
 
 export function getOrders() {
@@ -48,4 +49,11 @@ export function updateOrder(id: number, updates: any) {
   Object.assign(order, updates)
   console.log("[v0] updateOrder() - Order updated successfully:", { id: order.id, status: order.status })
   return order
+}
+
+export function clearAllOrders() {
+  console.log("[v0] clearAllOrders() - Clearing all", orders.length, "orders")
+  orders = []
+  orderIdCounter = 1
+  return true
 }

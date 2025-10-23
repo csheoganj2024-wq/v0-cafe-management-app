@@ -21,6 +21,10 @@ export function ManagerDashboard({ onLogout }: ManagerDashboardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [takeawayItems, setTakeawayItems] = useState<OrderItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0])
+  const [historyDateFilter, setHistoryDateFilter] = useState<string>("")
+  const [showClearDialog, setShowClearDialog] = useState(false)
+  const [clearPassword, setClearPassword] = useState("")
+  const [clearError, setClearError] = useState("")
 
   const { orders: apiOrders, loading } = useRealTimeOrders()
 
@@ -41,6 +45,46 @@ export function ManagerDashboard({ onLogout }: ManagerDashboardProps) {
     setIsRefreshing(true)
     setRefreshTime(new Date())
     setTimeout(() => setIsRefreshing(false), 500)
+  }
+
+  const handleClearHistory = async () => {
+    if (!clearPassword) {
+      setClearError("Please enter password")
+      return
+    }
+
+    try {
+      const response = await fetch("/api/orders/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: clearPassword }),
+      })
+
+      if (!response.ok) {
+        setClearError("Invalid password")
+        return
+      }
+
+      setClearPassword("")
+      setClearError("")
+      setShowClearDialog(false)
+      handleManualRefresh()
+    } catch (error) {
+      setClearError("Failed to clear history")
+    }
+  }
+
+  const getFilteredOrders = () => {
+    if (!historyDateFilter) return apiOrders
+
+    const filterDate = new Date(historyDateFilter)
+    filterDate.setHours(0, 0, 0, 0)
+
+    return apiOrders.filter((order) => {
+      const orderDate = new Date(order.createdAt)
+      orderDate.setHours(0, 0, 0, 0)
+      return orderDate.getTime() === filterDate.getTime()
+    })
   }
 
   const submitTakeawayOrder = async () => {
@@ -292,6 +336,8 @@ export function ManagerDashboard({ onLogout }: ManagerDashboardProps) {
 
   const categoryItems = MENU_ITEMS.filter((item) => item.category === selectedCategory)
   const takeawayTotal = takeawayItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  const filteredHistoryOrders = getFilteredOrders()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-yellow-50 p-4">
@@ -676,14 +722,80 @@ export function ManagerDashboard({ onLogout }: ManagerDashboardProps) {
 
           {activeTab === "history" && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold">Order History</h2>
-              {apiOrders.length === 0 ? (
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold">Order History</h2>
+                <Button onClick={() => setShowClearDialog(true)} variant="destructive" size="sm" className="gap-2">
+                  Clear History
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={historyDateFilter}
+                  onChange={(e) => setHistoryDateFilter(e.target.value)}
+                  className="px-3 py-2 border rounded-md text-sm"
+                />
+                {historyDateFilter && (
+                  <Button onClick={() => setHistoryDateFilter("")} variant="outline" size="sm">
+                    Clear Filter
+                  </Button>
+                )}
+              </div>
+
+              {showClearDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <Card className="w-96">
+                    <CardHeader>
+                      <CardTitle>Clear All History</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        This will permanently delete all orders and history. This action cannot be undone.
+                      </p>
+                      <div>
+                        <label className="text-sm font-medium">Enter Password</label>
+                        <input
+                          type="password"
+                          value={clearPassword}
+                          onChange={(e) => {
+                            setClearPassword(e.target.value)
+                            setClearError("")
+                          }}
+                          placeholder="Enter password"
+                          className="w-full px-3 py-2 border rounded-md mt-1 text-sm"
+                        />
+                      </div>
+                      {clearError && <p className="text-sm text-red-600">{clearError}</p>}
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          onClick={() => {
+                            setShowClearDialog(false)
+                            setClearPassword("")
+                            setClearError("")
+                          }}
+                          variant="outline"
+                        >
+                          Cancel
+                        </Button>
+                        <Button onClick={handleClearHistory} variant="destructive">
+                          Clear History
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {filteredHistoryOrders.length === 0 ? (
                 <Card>
-                  <CardContent className="pt-6 text-center text-muted-foreground">No orders yet</CardContent>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    {historyDateFilter ? "No orders found for this date" : "No orders yet"}
+                  </CardContent>
                 </Card>
               ) : (
                 <div className="grid gap-3">
-                  {apiOrders.map((order) => (
+                  {filteredHistoryOrders.map((order) => (
                     <Card key={order.id}>
                       <CardContent className="pt-6">
                         <div className="flex justify-between items-start mb-3">
